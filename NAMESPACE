@@ -12,6 +12,8 @@ importFrom(survival, coxph.fit)
 
 importFrom(MASS, mvrnorm)
 
+importFrom(genefilter, rowttest)        #5x faster than mt.teststat()
+
 exportClasses(MTP, EBMTP)
 
 exportMethods(as.list, plot, summary, update, EBupdate, "[")
@@ -24,7 +26,7 @@ export(MTP, EBMTP, as.list, mt.maxT, mt.minP, mt.plot, mt.rawp2adjp,
   fwer2fdr, get.index, ss.maxT, ss.minP, sd.maxT, sd.minP, wapply, 
   corr.Tn, corr.null, IC.Cor.NA, IC.CorXW.NA, insert.NA, diffs.1.N, 
   marg.samp, tQuantTrans, G.VS, ABH.h0, dens.est, Hsets, VScount,
-  mtp2ebmtp, ebmtp2mtp)
+  mtp2ebmtp, ebmtp2mtp, superdelta)
   
 S3method(print, MTP)
 S3method(print, EBMTP)

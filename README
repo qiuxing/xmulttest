@@ -1,0 +1,7 @@
+This is an R package designed for analyzing high throughput data such as microarray, exonarray, and next generation sequencing data.
+
+the primary feature of this package are the following functionalities
+1. A univariate significance test based on N-statistics (a.k.a. N-distance), which is implemented as a plugin of the main interface function mt.maxT(mydata.k, control.k, test="nstat", B=1000)
+2. A local normalization method called super delta-sequence method.
+
+This package is based on version 2.2.2 of the "multtest" package written by Katherine S. Pollard, Houston N. Gilbert, Yongchao Ge, Sandra Taylor, Sandrine Dudoit.  Eventually I'll remove all the redundant functionalities because it is simply not efficient to maintain two different branches of this package, it makes much more sense to use Pollard et al's up-to-date multtest package for standard microarray analysis and only use xmulttest for specialized functions such as N-test and super delta-sequence method.
