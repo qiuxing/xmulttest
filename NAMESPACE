@@ -12,7 +12,7 @@ importFrom(survival, coxph.fit)
 
 importFrom(MASS, mvrnorm)
 
-importFrom(genefilter, rowttest)        #5x faster than mt.teststat()
+importFrom(genefilter, rowttests)        #5x faster than mt.teststat()
 
 exportClasses(MTP, EBMTP)
 

@@ -366,25 +366,3 @@ mt.niceres<-function(res,X,index){
   newres[abs(newres)>=0.9*1e20]<-NA
   data.frame(newres)
 }
-
-
-## Added by Xing Qiu, super-delta sequence method stuff
-superdelta.teststat<-function(X,classlabel,test="t",na=.mt.naNUM,nonpara="n")
-{
-    if(is.factor(classlabel)) classlabel<-unclass(classlabel)-1
-    extra<-max(classlabel)+1
-    mt.checkothers(na=na,nonpara=nonpara)
-    tmp<-mt.transformX(X,classlabel,test,na,nonpara)
-    options<-c(test,"abs","y"); #"abs"  and "y" has no meaning here
-    res<-.C("get_stat",as.double(tmp$X),as.integer(tmp$m),
-               as.integer(tmp$n),as.integer(tmp$classlabel),as.double(na),
-               teststat=double(tmp$m),as.character(options),
-               as.integer(extra), PACKAGE="xmulttest")$teststat
-    res[abs(res)>=0.9*1e20]<-NA
-    res
-}
-
-
-
-
-
