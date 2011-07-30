@@ -34,8 +34,8 @@
   } else {
     stop(paste("Method", method, "is not implemented!"))
   }
-  ## 7/30/2011.  Try double t-stat.
-  return(2*t.est)
+  ## 7/30/2011.  Try t-stat with discounted variance.
+  return(sqrt(2)*t.est)
 }
 
 superdelta <- function(X, classlabel, methods=c("robust", "mean", "median"), ...){
