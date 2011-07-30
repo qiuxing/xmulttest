@@ -13,13 +13,15 @@
 ## this function takes tvec, which is a vector of t-statistics
 ## associated with the ith gene normalized by other genes.  It
 ## estimates one best t-stat according to different methods.
-.est.t <- function(tvec, method=c("robust", "median", "mclust"), filter=0.2, ...){
+.est.t <- function(tvec, method=c("robust", "mean", "median", "mclust"), filter=0.2, ...){
   method=match.arg(method)
   if (method=="robust"){
     tvec2 <- abs(tvec)
     t.est <- mean(tvec[tvec2>quantile(tvec2, filter)])
   } else if (method=="median"){
     t.est <- median(tvec)
+  } else if (method=="mean"){
+    t.est <- mean(tvec)
   } else if (method=="mclust"){
     ## mclust is not that robust, so use the following wrapper as a backup.
     .substitute <- function(x) {
@@ -35,7 +37,7 @@
   return(t.est)
 }
 
-superdelta <- function(X, classlabel, methods=c("robust", "median"), ...){
+superdelta <- function(X, classlabel, methods=c("robust", "mean", "median"), ...){
   m <- dim(X)[1]; nn <- dim(X)[2]
   teststat <- matrix(0, nrow=m, ncol=length(methods))
   colnames(teststat) <- methods; rownames(teststat) <- rownames(X)
