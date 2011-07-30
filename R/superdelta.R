@@ -17,7 +17,7 @@
   method=match.arg(method)
   if (method=="robust"){
     tvec2 <- abs(tvec)
-    t.est <- mean(tvec[tvec2>quantile(tvec2, filter)])
+    t.est <- mean(tvec[tvec2<=quantile(tvec2, filter)])
   } else if (method=="median"){
     t.est <- median(tvec)
   } else if (method=="mean"){
