@@ -1,5 +1,15 @@
 ## turn a vector of t-statistics into two sided pvalues
-.t2p <- function(x,df) 2-2*pt(abs(x),df)
+.t2p <- function(x, df, side="abs"){
+  if (side=="abs"){
+    return(2-2*pt(abs(x),df))
+  } else if (side=="lower"){
+    return(pt(x, df))
+  } else if (side=="upper"){
+    return(1-pt(x, df))
+  } else {
+    stop(paste("side must be one of the following three options: abs (default), lower, or upper."))
+  }
+}
 
 ## cluster tvec by mclust
 .tclust <- function(tvec, ...) {
@@ -41,16 +51,34 @@
   return(sqrt(2)*t.est)
 }
 
-superdelta <- function(X, classlabel, methods=c("robust", "mean", "median"), ...){
+superdelta <- function(X, classlabel, test="t", side="abs",
+                       methods="robust", trim=0.2, ...){
   m <- dim(X)[1]; nn <- dim(X)[2]
   teststat <- matrix(0, nrow=m, ncol=length(methods))
   colnames(teststat) <- methods; rownames(teststat) <- rownames(X)
   for (i in 1:m){
     delta.i <- matrix(rep(as.real(X[i,]),m-1),nrow=m-1,byrow=TRUE) -X[-i,]
-    tvec <- rowttests(as.matrix(delta.i), factor(classlabel), tstatOnly=TRUE)$statistic
+    if (test=="t"){
+      tvec <- rowttests(as.matrix(delta.i), factor(classlabel), tstatOnly=TRUE)$statistic
+    } else {
+      stop(paste("Test statistic", test, "is not implemented yet!"))
+    }
     for (mm in methods){
-      teststat[i,mm] <- .est.t(tvec, method=mm, ...)
+      teststat[i,mm] <- .est.t(tvec, method=mm, trim=trim, ...)
     }
   }
-  list(teststat=teststat, rawp=.t2p(teststat, df=nn-2))
+  ## two sided or one sided test; different test statistics, etc
+  if (test=="t"){
+    rawp=.t2p(teststat, df=nn-2, side=side)
+  } else {
+    stop(paste("Test statistic", test, "is not implemented yet!"))
+  }
+  ## two representations
+  if (ncol(teststat)==1){
+    rr <- data.frame(teststat=teststat, rawp=rawp)
+    colnames(rr) <- c("teststat", "rawp")
+    return(rr)
+  } else {
+    return(list(teststat=teststat, rawp=rawp))
+  }
 }

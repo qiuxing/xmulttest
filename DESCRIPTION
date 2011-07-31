@@ -1,8 +1,8 @@
 Package: xmulttest
 Title: Resampling-based multiple hypothesis testing
-Version: 0.2
-Author: Katherine S. Pollard, Houston N. Gilbert, Yongchao Ge, Sandra
-        Taylor, Sandrine Dudoit, Xing Qiu
+Version: 0.6
+Author:  Xing Qiu, Katherine S. Pollard, Houston N. Gilbert, Yongchao Ge,
+         Sandra Taylor, Sandrine Dudoit
 Description: Non-parametric bootstrap and permutation resampling-based
         multiple testing procedures (including empirical Bayes methods)
         for controlling the family-wise error rate (FWER), generalized
@@ -24,7 +24,7 @@ Description: Non-parametric bootstrap and permutation resampling-based
         differentially expressed genes in DNA microarray experiments.
 Maintainer: Katherine S. Pollard <kpollard@gladstone.ucsf.edu>
 Depends: R (>= 2.9.0), methods, Biobase
-Imports: survival, MASS
+Imports: survival, MASS, genefilter
 Enhances: snow, Rmpi, rpvm
 License: LGPL
 biocViews: Microarray, DifferentialExpression, MultipleComparisons
