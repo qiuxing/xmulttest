@@ -13,11 +13,14 @@
 ## this function takes tvec, which is a vector of t-statistics
 ## associated with the ith gene normalized by other genes.  It
 ## estimates one best t-stat according to different methods.
-.est.t <- function(tvec, method=c("robust", "mean", "median", "mclust"), filter=0.2, ...){
+.est.t <- function(tvec, method=c("robust", "mean", "median", "mclust"), trim=0.2, ...){
   method=match.arg(method)
   if (method=="robust"){
-    tvec2 <- abs(tvec)
-    t.est <- mean(tvec[tvec2<=quantile(tvec2, filter)])
+    ## 7/30/2011
+    ## median; fold; trim; unfold; mean
+    med1 <- median(tvec)
+    tvec2 <- abs(tvec-med1)
+    t.est <- mean(tvec[tvec2<=quantile(tvec2, 1-trim)])
   } else if (method=="median"){
     t.est <- median(tvec)
   } else if (method=="mean"){
@@ -27,7 +30,7 @@
     .substitute <- function(x) {
       warning("Mclust does not converge, use the robust method instead.")
       tvec2 <- abs(tvec)
-      t.est <- mean(tvec[tvec2>quantile(tvec2, filter)])
+      t.est <- mean(tvec[tvec2<=quantile(tvec2, 1-trim)])
       return(t.est)
     }
     t.est <- tryCatch(.tclust(tvec, ...), warning=.substitute, error=.substitute)
