@@ -28,19 +28,20 @@
   if (method=="robust"){
     ## 7/30/2011
     ## median; fold; trim; unfold; mean
-    med1 <- median(tvec)
+    ## 8/1/2011. na.rm to deal with unpredicted outcomes
+    med1 <- median(tvec, na.rm=TRUE)
     tvec2 <- abs(tvec-med1)
-    t.est <- mean(tvec[tvec2<=quantile(tvec2, 1-trim)])
+    t.est <- median(tvec[tvec2<=quantile(tvec2, 1-trim, na.rm=TRUE)])
   } else if (method=="median"){
-    t.est <- median(tvec)
+    t.est <- median(tvec, na.rm=TRUE)
   } else if (method=="mean"){
-    t.est <- mean(tvec)
+    t.est <- mean(tvec, na.rm=TRUE)
   } else if (method=="mclust"){
     ## mclust is not that robust, so use the following wrapper as a backup.
     .substitute <- function(x) {
       warning("Mclust does not converge, use the robust method instead.")
       tvec2 <- abs(tvec)
-      t.est <- mean(tvec[tvec2<=quantile(tvec2, 1-trim)])
+      t.est <- median(tvec[tvec2<=quantile(tvec2, 1-trim, na.rm=TRUE)])
       return(t.est)
     }
     t.est <- tryCatch(.tclust(tvec, ...), warning=.substitute, error=.substitute)
