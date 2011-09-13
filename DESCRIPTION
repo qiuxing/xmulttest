@@ -1,6 +1,6 @@
 Package: xmulttest
 Title: Resampling-based multiple hypothesis testing
-Version: 0.6.1
+Version: 0.7
 Author:  Xing Qiu, Katherine S. Pollard, Houston N. Gilbert, Yongchao Ge,
          Sandra Taylor, Sandrine Dudoit
 Description: Non-parametric bootstrap and permutation resampling-based

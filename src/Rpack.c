@@ -217,7 +217,7 @@ int type2test(char* ptest,SAMPLING_DATA* sd)
     sd->fn_num_denum=two_sample_t1stat_num_denum;
     sd->fn_maxT=sd->fn_stat;
     sd->fn_minP=ave_diff;/*changed to montone*/
-  }else  if(strcmp(ptest,"nstat")==0){
+  }else if(strcmp(ptest,"nstat")==0){
     test=mtT;
     sd->fn_stat=nstat;
     sd->fn_num_denum=Nstat_num_denum;
@@ -296,27 +296,54 @@ int type2sample(char** options,SAMPLING_DATA* sd)
   }
   return 1;
 }
-      
-    
 
-    
-/*test*/
-/*main()
+/* superdelta method with t-stat.  It takes one data matrix and a list
+   of baseline genes (for a heuristic), computes the deltas, then it
+   updates a vector of statistics computed from the deltas.  This
+   vector must be of length m times (npairs-1), which is actually the
+   vector version of a matrix fed from the R counterpart, superdelta().
+
+   d: the matrix of original data
+   pnrow: number of genes (m)
+   pncol: number of experiments/slides (n1+n2)
+   L: the class labelling of each experiments.
+   pna: the NA representation of gene values.
+   bgenes: index of baseline genes (used in the heuristic)
+   npairs: length of bgenes
+   T: A vector of length m times (npairs-1) to hold statistics.
+   extra: This variable indicates how many biological groups in the study. 
+   */
+
+void superdelta_stats(double*d, int*pnrow, int*pncol, int*L, double*pna,
+                      int*bgenes, int*npairs, float*T, char**options,
+                      int*extra)
 {
-  #define N 6
-  #define NUMB 6
-  int n=N;
-  int L[N]={0,0,1,1,2,2};
-  int B=NUMB;
-  int S[NUMB*N];
-  int i;
-  get_sample_labels(&n,L,&B,S);
-  for(i=0;i<B;i++)
-    print_narray(stderr,S+i*n,n);
-}*/
+  GENE_DATA data;
+  SAMPLING_DATA sd;
+  /* below creates object sd, which has a slot fn_stat */
+  if(type2test(options[0],&sd)==0)
+    return;
+  create_gene_data(d,pnrow,pncol,L,pna,&data,0);
 
-
-  
-
-
-
+  int i=0, j=0, j2=0, k=0, ind_j=0;
+  double*delta_ij;
+  delta_ij=(double *)Calloc(*pncol,double);
+  for (i=0; i<data.nrow; i++){
+    j2=0;
+    for (j=0; j<*npairs-1; j++){
+      if (bgenes[j] == i) {
+        j2 +=2;    /* skip delta_ii */
+      } else {
+        j2 +=1;
+      }
+      ind_j = bgenes[j2-1];
+      /* compute delta_ij */
+      for (k=0; k<data.ncol; k++)
+        delta_ij[k] = data.d[i][k] - data.d[ind_j][k];
+      /* compute the actual statistic */
+      T[j*data.nrow+i]=(*sd.fn_stat)(delta_ij,L,*pncol,*pna,extra);
+    }
+  }
+  Free(delta_ij);
+  free_gene_data(&data);
+}

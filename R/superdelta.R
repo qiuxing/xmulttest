@@ -11,8 +11,16 @@
   }
 }
 
+## Median; fold; trim; median
+mftm <- function(tvec, trim=0.2){
+  med1 <- median(tvec, na.rm=TRUE)
+  tvec2 <- abs(tvec-med1)
+  t.est <- median(tvec[tvec2<=quantile(tvec2, 1-trim, na.rm=TRUE)])
+  return(t.est)
+}
+
 ## cluster tvec by mclust
-.tclust <- function(tvec, ...) {
+.tclust1 <- function(tvec, ...) {
   mm.i <- summary(mclustBIC(tvec, G=3, modelName="V", ...), tvec)
   NC1 <- sum(mm.i$classification==1); NC2 <- sum(mm.i$classification==2); NC3 <- sum(mm.i$classification==3)
   largest.cluster <- which.max(c(NC1, NC2, NC3))
@@ -20,31 +28,30 @@
   return(t.est)
 }
 
-## this function takes tvec, which is a vector of t-statistics
-## associated with the ith gene normalized by other genes.  It
-## estimates one best t-stat according to different methods.
-.est.t <- function(tvec, method=c("robust", "mean", "median", "mclust"), trim=0.2, ...){
+.tclust2 <- function(tvec, trim=0.2, ...){
+  ## mclust is not that robust, so use the following wrapper as a backup.
+  .substitute <- function(x) {
+    warning("Mclust does not converge, use the robust method instead.")
+    mftm(tvec, trim=trim)
+  }
+  t.est <- tryCatch(.tclust1(tvec, ...), warning=.substitute, error=.substitute)
+  return(t.est)
+}
+
+## this function takes tmat, which is a matrix of
+## t-statistics. tmat[i,j] is the tstat associated with the ith gene
+## normalized by the jth gene.  It estimates one best t-stat according
+## to different methods.
+.est.t <- function(tmat, method=c("robust", "mean", "median", "mclust"), trim=0.2, ...){
   method=match.arg(method)
   if (method=="robust"){
-    ## 7/30/2011
-    ## median; fold; trim; unfold; mean
-    ## 8/1/2011. na.rm to deal with unpredicted outcomes
-    med1 <- median(tvec, na.rm=TRUE)
-    tvec2 <- abs(tvec-med1)
-    t.est <- median(tvec[tvec2<=quantile(tvec2, 1-trim, na.rm=TRUE)])
+    t.est <- apply(tmat, 1, mftm, trim=trim)
   } else if (method=="median"){
-    t.est <- median(tvec, na.rm=TRUE)
+    t.est <- rowMedians(tmat, na.rm=TRUE)
   } else if (method=="mean"){
-    t.est <- mean(tvec, na.rm=TRUE)
+    t.est <- rowMeans(tmat, na.rm=TRUE)
   } else if (method=="mclust"){
-    ## mclust is not that robust, so use the following wrapper as a backup.
-    .substitute <- function(x) {
-      warning("Mclust does not converge, use the robust method instead.")
-      tvec2 <- abs(tvec)
-      t.est <- median(tvec[tvec2<=quantile(tvec2, 1-trim, na.rm=TRUE)])
-      return(t.est)
-    }
-    t.est <- tryCatch(.tclust(tvec, ...), warning=.substitute, error=.substitute)
+    t.est <- apply(tmat, 1, .tclust2)
   } else {
     stop(paste("Method", method, "is not implemented!"))
   }
@@ -52,28 +59,47 @@
   return(sqrt(2)*t.est)
 }
 
-superdelta <- function(X, classlabel, test="t", side="abs",
-                       methods="robust", trim=0.2, ...){
-  m <- dim(X)[1]; nn <- dim(X)[2]
-  teststat <- matrix(0, nrow=m, ncol=length(methods))
+superdelta <- function(X, classlabel, test="t", side="abs", na=.mt.naNUM,
+                       methods="robust", trim=0.2, npairs=0, ...)
+{
+  ngenes <- dim(X)[1]; nslides <- dim(X)[2]
+  teststat <- matrix(0, nrow=ngenes, ncol=length(methods))
   colnames(teststat) <- methods; rownames(teststat) <- rownames(X)
-  for (i in 1:m){
-    delta.i <- matrix(rep(as.real(X[i,]),m-1),nrow=m-1,byrow=TRUE) -X[-i,]
-    if (test=="t"){
-      tvec <- rowttests(as.matrix(delta.i), factor(classlabel), tstatOnly=TRUE)$statistic
-    } else {
-      stop(paste("Test statistic", test, "is not implemented yet!"))
-    }
-    for (mm in methods){
-      teststat[i,mm] <- .est.t(tvec, method=mm, trim=trim, ...)
-    }
+
+  if(is.factor(classlabel)) classlabel<-unclass(classlabel)-1
+  extra<-max(classlabel)+1
+  mt.checkothers(na=na,nonpara=nonpara)
+  tmp<-mt.transformX(X,classlabel,test,na,nonpara)
+  options<-c(test,"abs","y"); #"abs"  and "y" has no meaning here
+  ## decide whether a heuristic should be used or not
+  if (length(npairs)>1){                #assume this is a vector of pre-selected baseline genes (heuristic)
+    baseline.genes <- npairs
+  } else if (npairs>0){                      #use heuristic
+    baseline.genes <- sample(m, npairs)
+  } else {                              #use all genes
+    baseline.genes <- 1:ngenes
   }
+
+  res<-.C("superfelta_stats",as.double(tmp$X),as.integer(tmp$m),
+          as.integer(tmp$n),as.integer(tmp$classlabel),as.double(na),
+          as.integer(baseline.genes-1), as.integer(npairs-1),
+          teststat=double(tmp$m*(npairs-1)),as.character(options),
+          as.integer(extra), PACKAGE="xmulttest")$teststat
+  res[abs(res)>=0.9*1e20]<-NA
+  tmat <- matrix(res, nrow=ngenes)
+
+  ## Now estimate the centers
+  for (mm in methods){
+    teststat[i,mm] <- .est.t(tmat, method=mm, trim=trim, ...)
+  }
+
   ## two sided or one sided test; different test statistics, etc
   if (test=="t"){
-    rawp=.t2p(teststat, df=nn-2, side=side)
+    rawp=.t2p(teststat, df=nslides-2, side=side)
   } else {
     stop(paste("Test statistic", test, "is not implemented yet!"))
   }
+
   ## two representations
   if (ncol(teststat)==1){
     rr <- data.frame(teststat=teststat, rawp=rawp)
@@ -83,3 +109,4 @@ superdelta <- function(X, classlabel, test="t", side="abs",
     return(list(teststat=teststat, rawp=rawp))
   }
 }
+
