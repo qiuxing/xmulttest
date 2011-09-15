@@ -60,7 +60,7 @@ mftm <- function(tvec, trim=0.2){
 }
 
 superdelta <- function(X, classlabel, test="t", side="abs", na=.mt.naNUM,
-                       methods="robust", trim=0.2, npairs=0, ...)
+                       methods="robust", trim=0.2, baseline="auto", ...)
 {
   ngenes <- dim(X)[1]; nslides <- dim(X)[2]
   teststat <- matrix(0, nrow=ngenes, ncol=length(methods))
@@ -68,29 +68,36 @@ superdelta <- function(X, classlabel, test="t", side="abs", na=.mt.naNUM,
 
   if(is.factor(classlabel)) classlabel<-unclass(classlabel)-1
   extra<-max(classlabel)+1
-  mt.checkothers(na=na,nonpara=nonpara)
-  tmp<-mt.transformX(X,classlabel,test,na,nonpara)
+  mt.checkothers(na=na,nonpara="n")
+  tmp<-mt.transformX(X,classlabel,test,na,nonpara="n")
   options<-c(test,"abs","y"); #"abs"  and "y" has no meaning here
   ## decide whether a heuristic should be used or not
-  if (length(npairs)>1){                #assume this is a vector of pre-selected baseline genes (heuristic)
-    baseline.genes <- npairs
-  } else if (npairs>0){                      #use heuristic
-    baseline.genes <- sample(m, npairs)
+  if (baseline=="auto") {
+    baseline <- ifelse(ngenes>1000, 1000, 0)
+  } else if (baseline=="all"){
+    baseline <- 0
+  }
+
+  if (length(baseline)>1){                #assume this is a vector of pre-selected baseline genes (heuristic)
+    baseline.genes <- baseline
+  } else if (baseline>0){                      #use heuristic
+    baseline.genes <- sample(ngenes, baseline)
   } else {                              #use all genes
     baseline.genes <- 1:ngenes
   }
+  baseline <- length(baseline.genes)
 
-  res<-.C("superfelta_stats",as.double(tmp$X),as.integer(tmp$m),
+  res<-.C("superdelta_stats",as.double(tmp$X),as.integer(tmp$m),
           as.integer(tmp$n),as.integer(tmp$classlabel),as.double(na),
-          as.integer(baseline.genes-1), as.integer(npairs-1),
-          teststat=double(tmp$m*(npairs-1)),as.character(options),
+          as.integer(baseline.genes-1), as.integer(baseline),
+          teststat=double(tmp$m*(baseline-1)),as.character(options),
           as.integer(extra), PACKAGE="xmulttest")$teststat
   res[abs(res)>=0.9*1e20]<-NA
   tmat <- matrix(res, nrow=ngenes)
 
   ## Now estimate the centers
   for (mm in methods){
-    teststat[i,mm] <- .est.t(tmat, method=mm, trim=trim, ...)
+    teststat[,mm] <- .est.t(tmat, method=mm, trim=trim, ...)
   }
 
   ## two sided or one sided test; different test statistics, etc

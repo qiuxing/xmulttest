@@ -300,7 +300,7 @@ int type2sample(char** options,SAMPLING_DATA* sd)
 /* superdelta method with t-stat.  It takes one data matrix and a list
    of baseline genes (for a heuristic), computes the deltas, then it
    updates a vector of statistics computed from the deltas.  This
-   vector must be of length m times (npairs-1), which is actually the
+   vector must be of length m times (baseline-1), which is actually the
    vector version of a matrix fed from the R counterpart, superdelta().
 
    d: the matrix of original data
@@ -309,13 +309,13 @@ int type2sample(char** options,SAMPLING_DATA* sd)
    L: the class labelling of each experiments.
    pna: the NA representation of gene values.
    bgenes: index of baseline genes (used in the heuristic)
-   npairs: length of bgenes
-   T: A vector of length m times (npairs-1) to hold statistics.
+   baseline: length of bgenes
+   T: A vector of length m times (baseline-1) to hold statistics.
    extra: This variable indicates how many biological groups in the study. 
    */
 
 void superdelta_stats(double*d, int*pnrow, int*pncol, int*L, double*pna,
-                      int*bgenes, int*npairs, float*T, char**options,
+                      int*bgenes, int*baseline, float*T, char**options,
                       int*extra)
 {
   GENE_DATA data;
@@ -330,7 +330,7 @@ void superdelta_stats(double*d, int*pnrow, int*pncol, int*L, double*pna,
   delta_ij=(double *)Calloc(*pncol,double);
   for (i=0; i<data.nrow; i++){
     j2=0;
-    for (j=0; j<*npairs-1; j++){
+    for (j=0; j<*baseline-1; j++){
       if (bgenes[j] == i) {
         j2 +=2;    /* skip delta_ii */
       } else {
@@ -347,3 +347,27 @@ void superdelta_stats(double*d, int*pnrow, int*pncol, int*L, double*pna,
   Free(delta_ij);
   free_gene_data(&data);
 }
+
+/* Robust estimator of the t-stat by median-fold-trim-median algorithm.
+   tmat:  vectorized tstat matrix of size ngenes*(baseline-1);
+   t_est: the estimated t_stats of length ngenes. */
+
+/* void mftm(double*tmat, int*ngenes, int*baseline, double*trim, double*t_est) */
+/* { */
+/*   int i=0, j=0; */
+/*   double*tvec_i; */
+/*   tvec_i=(double *)Calloc(*baseline-1, double); */
+/*   for (i=0; i<*ngenes; i++){ */
+/*     for (j=0; j<*baseline-1; j++) */
+/*       tvec_i[j] = tmat[j*ngenes+i]; */
+/*     /\* median *\/ */
+/*     ...; */
+/*     /\* fold *\/ */
+/*     ...; */
+/*     /\* trim *\/ */
+/*     ...; */
+/*     /\* median *\/ */
+/*     ...; */
+/*   }     */
+/*   Free(tvec_i); */
+/* } */

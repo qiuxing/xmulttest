@@ -9,8 +9,8 @@
   expression level data.  Only Student's two sample t-test is
   implemented in the current version.  }
 
-\usage{ superdelta(X, classlabel, test="t", side="abs",
-                  methods="robust", trim=0.2, ...) }
+\usage{ superdelta(X, classlabel, test="t", side="abs", na=.mt.naNUM,
+                  methods="robust", trim=0.2, baseline="auto", ...) }
 
 \arguments{
   \item{X}{
@@ -42,6 +42,13 @@
     If \code{side="lower"}, one-tailed tests,  the null hypothesis is rejected for small values of the test statistic.
   }
 
+  \item{na}{Code for missing values (the default is
+    \code{.mt.naNUM=--93074815.62}).  Entries with missing values will
+    be ignored in the computation, i.e., test statistics will be based
+    on a smaller sample size. This feature has not yet fully
+    implemented.
+  }
+
   \item{methods}{A list of estimating methods to be used with the
     super-delta sequence method.  The default value "robust" should be the
     best method for most applications.  Other options include "mean",
@@ -56,55 +63,73 @@
     computing the robust sample mean.  
   }
 
-  \item{...}{Other options passed to the advanced method
-    "mclust". Please see help on \code{Mclust} for more details. }
+  \item{baseline}{ See Section details. }
+
+  \item{...}{Other advanced options. Currently not used. }
 }
 
-\details{
-  The super-delta sequence method is a combination of a)
-  gene normalization procedure based on pairwise normalization; b) and a
-  gene selection procedure based on a suitable test statistic.  It must
-  be applied to log-transformed, but \emph{not normalized} gene
-  expression level data.  Only Student's two sample t-test (with equal
-  variance assumption) is implemented in the current version.  Future
-  plan includes implementing Welch's t-test (with unequal variance
-  adjustment), paired t-test, and ANOVA F-test.  For more technical details
-  of the super-delta sequence method please see the reference.
+\details{ The super-delta sequence method is a combination of a) gene
+  normalization procedure based on pairwise normalization; b) and a gene
+  selection procedure based on a suitable test statistic.  It must be
+  applied to background corrected, log-transformed, but \emph{not
+  normalized} gene expression level data.  Only Student's two sample
+  t-test is implemented in the current version.  Future plan includes
+  paired t-test and ANOVA F-test.  For more technical details of the
+  super-delta sequence method please see the reference.
 
-  A few words about the \code{trim} parameter which controls how robust
-  the super-delta sequence method is.  In theory, a safe \code{trim} value
-  should be no less than the proportion of true differentially expressed
-  genes.  The default value 0.2 should work for most practical
-  applications for two reasons: a) it is not that common to have more
-  than 20\% genes selected as DEG; b) even if more than 20\% of genes are
-  DEG, chances are some of the "outliers" caused by pairing with
-  the up-regulated genes get cancelled with those caused by the
-  down-regulated genes; c) trimming is by nature a conservative
-  operation, so some residual bias will not cause noticeable inflation
-  of type I error.  Please see the reference for more details.    
-}
+  The \code{trim} parameter which controls how robust the super-delta
+  sequence method is.  In theory, a safe \code{trim} value should be no
+  less than the proportion of true differentially expressed genes.  The
+  default value 0.2 should work for most practical applications for two
+  reasons: a) it is not that common to have more than 20\% genes
+  selected as DEG; b) even if more than 20\% of genes are DEG, chances
+  are some of the "outliers" caused by pairing with the up-regulated
+  genes get cancelled with those caused by the down-regulated genes; c)
+  trimming is by nature a conservative operation, so some residual bias
+  will not cause noticeable inflation of type I error.  Please see the
+  reference for more details.
 
-\value{ A list with components
-  \item{teststat}{Vector of test statistics.}
-  \item{rawp}{Vector of raw (unadjusted) \eqn{p}-values.}
+  The baseline paramter defines the set of baseline genes.  If set to
+  "all" or 0, every gene is normalized to every other gene.  If set to a
+  vector of integers, genes with these indices will be used as baseline
+  genes, so every gene is normalized by these baseline genes only.  This
+  can save computation time and memory drastically for large data.  If
+  it is a positive integer, a random subset of genes of this size is
+  created by sample(ngenes, baseline) and used as baseline genes.  The
+  default ("auto") is to use 1000 genes when the number of genes is larger
+  than 1000 and all genes for smaller data. }
+
+\value{If one method is specified (the default behavior), it produce a
+  data frame with two components: 
+  \item{teststat}{Vector (or matrix, if more than one method is
+    specified) of test statistics.}
+  \item{rawp}{Vector (or matrix) of raw (unadjusted) \eqn{p}-values.}
+  If more than one method is specified, \code{teststat} and \code{rawp}
+  are organized as data frames and put together as a list.
 }
 
 \author{Xing Qiu}
 \seealso{\code{\link{mean}}, \code{\link{t.test}}, \code{\link{p.adjust}}}
 \examples{
-## The Golub data.  On my computer, it takes about 2.5sec to run, YMMV.
+## The Golub data.  On my computer, it takes about 3 seconds to run, YMMV.
 ## The result is a data.frame with two columns: teststat and rawp.
 
 data(golub)
-smallgd<-golub[1:500,]
 classlabel<-golub.cl
-system.time(res1 <- superdelta(smallgd, classlabel))
+system.time(res1 <- superdelta(golub, classlabel))
+
+## Golub data has 3,051 genes. You can use all genes as baseline genes,
+## in which case it may take about 10 seconds to run.
+\dontrun{system.time(res2 <- superdelta(golub, classlabel, baseline="all"))}
 
 ## use both robust and the mclust methods together with a lower-side
-## test to find up-regulated genes.  The results are organized in a
-## list of two data.frames instead. This command takes about 40 seconds
-## to run because Mclust is an expensive computation.
-\dontrun{library(mclust); res2 <- superdelta(smallgd, classlabel, methods=c("robust", "mclust"), side="lower")}
+## test to find up-regulated genes.  A random set of 500 genes are used.
+## The results are organized in a list of two data.frames instead. This
+## command takes several minutes to run because Mclust is
+## computationally very expensive.
+
+\dontrun{library(mclust); res3 <- superdelta(golub, classlabel,
+methods=c("robust", "mclust"), side="lower", baseline=500)}
 }
 
 \keyword{htest}% __ONLY ONE__ keyword per line
