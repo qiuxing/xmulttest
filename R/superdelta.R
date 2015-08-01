@@ -16,7 +16,7 @@
   mm.i <- summary(mclustBIC(tvec, G=3, modelName="V", ...), tvec)
   NC1 <- sum(mm.i$classification==1); NC2 <- sum(mm.i$classification==2); NC3 <- sum(mm.i$classification==3)
   largest.cluster <- which.max(c(NC1, NC2, NC3))
-  t.est <- as.real(mm.i$parameters$mean[largest.cluster])
+  t.est <- as.numeric(mm.i$parameters$mean[largest.cluster])
   return(t.est)
 }
 
@@ -57,7 +57,7 @@ superdelta <- function(X, classlabel, test="t", side="abs",
   teststat <- matrix(0, nrow=m, ncol=length(methods))
   colnames(teststat) <- methods; rownames(teststat) <- rownames(X)
   for (i in 1:m){
-    delta.i <- matrix(rep(as.real(X[i,]),m-1),nrow=m-1,byrow=TRUE) -X[-i,]
+    delta.i <- matrix(rep(as.numeric(X[i,]),m-1),nrow=m-1,byrow=TRUE) -X[-i,]
     if (test=="t"){
       tvec <- rowttests(as.matrix(delta.i), factor(classlabel), tstatOnly=TRUE)$statistic
     } else {
